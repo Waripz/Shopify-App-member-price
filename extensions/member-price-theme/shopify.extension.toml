@@ -1,0 +1,10 @@
+name = "member-price-theme"
+type = "theme"
+
+[[extensions]]
+name = "member-price-theme"
+handle = "member-price-theme"
+type = "theme"
+
+  [extensions.capabilities]
+  network_access = false

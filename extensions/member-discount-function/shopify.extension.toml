@@ -1,0 +1,22 @@
+name = "member-discount-function"
+type = "product_discounts"
+api_version = "2024-10"
+description = "Applies member pricing to logged-in customers at checkout"
+
+[[extensions]]
+name = "member-discount-function"
+handle = "member-discount-function"
+type = "function"
+
+  [extensions.build]
+  command = "npm run build"
+  path = "dist/index.wasm"
+  watch_paths = ["src/**/*.js"]
+
+  [extensions.ui.paths]
+  create = "/app/discount/new"
+  details = "/app/discount/:id"
+
+  [extensions.input.variables]
+  namespace = "$app:member-price-config"
+  key = "config"

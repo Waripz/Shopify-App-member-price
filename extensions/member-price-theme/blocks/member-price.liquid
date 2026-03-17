@@ -1,0 +1,148 @@
+{% schema %}
+{
+  "name": "Member Price",
+  "target": "section",
+  "settings": [
+    {
+      "type": "range",
+      "id": "discount_percentage",
+      "label": "Default Member Discount (%)",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 10,
+      "info": "Shown as a fallback if the app discount is not configured."
+    },
+    {
+      "type": "color",
+      "id": "badge_background_color",
+      "label": "Badge Background Color",
+      "default": "#006E52"
+    },
+    {
+      "type": "color",
+      "id": "badge_text_color",
+      "label": "Badge Text Color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_savings_amount",
+      "label": "Show savings amount",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "name": "Member Price"
+    }
+  ]
+}
+{% endschema %}
+
+{% liquid
+  assign member_price_meta = product.metafields.member_price.price
+  assign regular_price = product.selected_or_first_available_variant.price
+  assign discount_pct = block.settings.discount_percentage | default: 10
+
+  if member_price_meta != blank
+    assign member_price_value = member_price_meta.value | times: 100 | round
+  else
+    assign discount_factor = 100 | minus: discount_pct | divided_by: 100.0
+    assign member_price_value = regular_price | times: discount_factor | round
+  endif
+
+  assign savings = regular_price | minus: member_price_value
+%}
+
+<style>
+  .member-price-block {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-family: inherit;
+  }
+  .member-price-block--active {
+    background-color: {{ block.settings.badge_background_color }};
+    color: {{ block.settings.badge_text_color }};
+  }
+  .member-price-block--locked {
+    background-color: #f4f4f4;
+    color: #333;
+    border: 1px dashed #ccc;
+  }
+  .member-price-block__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+  .member-price-block__amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: block;
+  }
+  .member-price-block__savings {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    display: block;
+    margin-top: 0.125rem;
+  }
+  .member-price-block__regular {
+    font-size: 0.85rem;
+    opacity: 0.75;
+    text-decoration: line-through;
+  }
+  .member-price-block__login-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: #006E52;
+    text-decoration: none;
+  }
+  .member-price-block__login-link:hover {
+    text-decoration: underline;
+  }
+  .member-price-block__teaser {
+    display: block;
+    font-size: 0.8rem;
+    color: #555;
+    margin-top: 0.25rem;
+  }
+</style>
+
+{% if customer %}
+  <div class="member-price-block member-price-block--active" {{ block.shopify_attributes }}>
+    <span class="member-price-block__label">
+      {{ 'products.member_price.label' | t: default: 'Member Price' }}
+    </span>
+    <span class="member-price-block__amount">
+      {{ member_price_value | money }}
+    </span>
+    {% if block.settings.show_savings_amount and savings > 0 %}
+      <span class="member-price-block__savings">
+        {{ 'products.member_price.you_save' | t:
+          default: 'You save {amount}',
+          amount: savings | money
+        }}
+        <span class="member-price-block__regular">({{ regular_price | money }})</span>
+      </span>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="member-price-block member-price-block--locked" {{ block.shopify_attributes }}>
+    <a href="{{ routes.account_login_url }}" class="member-price-block__login-link">
+      <span aria-hidden="true">🔒</span>
+      {{ 'products.member_price.login_prompt' | t: default: 'Log in for Member Price' }}
+    </a>
+    <span class="member-price-block__teaser">
+      {{ 'products.member_price.teaser' | t:
+        default: 'Members save up to {discount}%',
+        discount: discount_pct
+      }}
+    </span>
+  </div>
+{% endif %}

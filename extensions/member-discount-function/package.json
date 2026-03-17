@@ -1,0 +1,14 @@
+{
+  "name": "member-discount-function",
+  "version": "1.0.0",
+  "description": "Shopify Function that applies member pricing to logged-in customers",
+  "type": "module",
+  "scripts": {
+    "build": "javy compile src/index.js -o dist/index.wasm",
+    "test": "NODE_OPTIONS=--experimental-vm-modules node_modules/.bin/jest"
+  },
+  "devDependencies": {
+    "@shopify/shopify_function": "^0.1.0",
+    "jest": "^29.7.0"
+  }
+}
