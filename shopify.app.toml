@@ -1,0 +1,28 @@
+name = "shopify-member-price"
+client_id = "your_client_id_here"
+application_url = "https://your-app-url.com"
+embedded = true
+
+[access_scopes]
+scopes = "write_products,read_customers,write_discounts,read_price_rules,read_metaobjects,write_metaobjects"
+
+[auth]
+redirect_urls = [
+  "https://your-app-url.com/auth/callback",
+  "https://your-app-url.com/auth/shopify/callback",
+  "https://your-app-url.com/exitiframe"
+]
+
+[webhooks]
+api_version = "2024-10"
+
+  [[webhooks.subscriptions]]
+  topics = ["app/uninstalled"]
+  uri = "/webhooks"
+
+  [[webhooks.subscriptions]]
+  topics = ["customers/create"]
+  uri = "/webhooks"
+
+[pos]
+embedded = false

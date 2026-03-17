@@ -1,0 +1,51 @@
+{% comment %}
+  member-price.liquid
+  Shows the member price on a product page.
+  
+  Usage:
+    {% render 'member-price', product: product, settings: section.settings %}
+    
+  Variables:
+    - product: the current product object
+    - discount_percentage: global discount (passed from section settings or block)
+{% endcomment %}
+
+{% assign member_price_metafield = product.metafields.member_price.price %}
+{% assign regular_price = product.selected_or_first_available_variant.price %}
+{% assign currency_code = cart.currency.iso_code %}
+
+{% if member_price_metafield != blank %}
+  {% assign member_price_value = member_price_metafield.value | times: 100 | round %}
+{% else %}
+  {% assign discount_pct = discount_percentage | default: 10 | times: 1.0 %}
+  {% assign discount_factor = 100 | minus: discount_pct | divided_by: 100.0 %}
+  {% assign member_price_value = regular_price | times: discount_factor | round %}
+{% endif %}
+
+<div class="member-price-wrapper" data-member-price-container>
+  {% if customer %}
+    <div class="member-price member-price--active">
+      <span class="member-price__label">{{ 'products.member_price.label' | t: default: 'Member Price' }}</span>
+      <span class="member-price__amount">
+        {{ member_price_value | money }}
+      </span>
+      <span class="member-price__regular-price">
+        {{ 'products.member_price.regular_price' | t: default: 'Regular:' }}
+        <s>{{ regular_price | money }}</s>
+      </span>
+    </div>
+  {% else %}
+    <div class="member-price member-price--locked">
+      <a href="{{ routes.account_login_url }}" class="member-price__login-link">
+        <span class="member-price__lock-icon" aria-hidden="true">🔒</span>
+        {{ 'products.member_price.login_prompt' | t: default: 'Log in for Member Price' }}
+      </a>
+      <span class="member-price__teaser">
+        {{ 'products.member_price.teaser' | t:
+          default: 'Members save up to {discount}%',
+          discount: discount_pct | default: 10
+        }}
+      </span>
+    </div>
+  {% endif %}
+</div>

@@ -1,0 +1,12 @@
+node_modules
+.DS_Store
+*.log
+.env
+build
+.cache
+public/build
+.shopify
+dist
+.vinxi
+/app/shopify.server.js.timestamp-*
+package-lock.json
