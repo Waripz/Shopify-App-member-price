@@ -1,5 +1,7 @@
-import { useSubmit, useActionData, useNavigation, useLoaderData } from "react-router";
+import { useSubmit, useActionData, useNavigation, useLoaderData } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
+import { json } from "@remix-run/node";
+import { useEffect, useState } from "react";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -11,6 +13,7 @@ export const loader = async ({ request }) => {
       }
     }
   `);
+  
   const resJson = await response.json();
   const functions = resJson.data?.shopifyFunctions?.nodes || [];
   const discounts = resJson.data?.discountNodes?.nodes || [];
@@ -18,11 +21,11 @@ export const loader = async ({ request }) => {
   const ourFunction = functions.find(f => f.title === "member-price-discount");
   const activeDiscountNode = discounts.find(d => d.discount?.title === "IMANist Member Special Price");
 
-  return { 
+  return json({ 
     isActive: !!activeDiscountNode, 
     discountId: activeDiscountNode?.id || null,
     functionId: ourFunction?.id || null 
-  };
+  });
 };
 
 export const action = async ({ request }) => {
@@ -32,40 +35,96 @@ export const action = async ({ request }) => {
   const functionId = formData.get("functionId");
   const discountId = formData.get("discountId");
 
-  if (actionType === "activate") {
-    await admin.graphql(`
-      mutation create($functionId: String!) {
-        discountAutomaticAppCreate(automaticAppDiscount: {
-          title: "IMANist Member Special Price",
-          functionId: $functionId,
-          startsAt: "${new Date().toISOString()}",
-          discountClasses: [PRODUCT]
-        }) { userErrors { message } }
-      }`, { variables: { functionId } });
-    return { success: true };
-  }
+  try {
+    if (actionType === "activate") {
+      const response = await admin.graphql(`
+        mutation create($functionId: String!) {
+          discountAutomaticAppCreate(automaticAppDiscount: {
+            title: "IMANist Member Special Price",
+            functionId: $functionId,
+            startsAt: "${new Date().toISOString()}",
+            discountClasses: [PRODUCT]
+          }) { 
+            userErrors { field message } 
+            automaticAppDiscount { discountId }
+          }
+        }`, { variables: { functionId } });
 
-  if (actionType === "deactivate") {
-    await admin.graphql(`
-      mutation delete($id: ID!) {
-        discountAutomaticDelete(id: $id) { userErrors { message } }
-      }`, { variables: { id: discountId } });
-    return { success: true };
+      const resJson = await response.json();
+      const errors = resJson.data?.discountAutomaticAppCreate?.userErrors;
+      
+      if (errors && errors.length > 0) {
+        return json({ error: errors[0].message });
+      }
+      return json({ success: true, message: "Discount activated successfully!" });
+    }
+
+    if (actionType === "deactivate") {
+      const response = await admin.graphql(`
+        mutation delete($id: ID!) {
+          discountAutomaticDelete(id: $id) { 
+            userErrors { field message } 
+          }
+        }`, { variables: { id: discountId } });
+
+      const resJson = await response.json();
+      const errors = resJson.data?.discountAutomaticDelete?.userErrors;
+
+      if (errors && errors.length > 0) {
+        return json({ error: errors[0].message });
+      }
+      return json({ success: true, message: "Discount deactivated." });
+    }
+  } catch (err) {
+    return json({ error: "Server error. Please check Railway logs." });
   }
   return null;
 };
 
 export default function Index() {
   const { isActive, functionId, discountId } = useLoaderData();
-  const submit = useSubmit();
   const actionData = useActionData();
+  const submit = useSubmit();
   const nav = useNavigation();
+  
+  // High-precision loading state
   const isLoading = nav.state !== "idle";
+  const [showBanner, setShowBanner] = useState(false);
+
+  // Trigger success/error banner visibility
+  useEffect(() => {
+    if (actionData?.success || actionData?.error) {
+      setShowBanner(true);
+      const timer = setTimeout(() => setShowBanner(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionData]);
+
+  const handleToggle = () => {
+    const data = {
+      actionType: isActive ? 'deactivate' : 'activate',
+      functionId: functionId || "",
+      discountId: discountId || "",
+    };
+    submit(data, { method: "post" });
+  };
 
   return (
     <s-page heading="IMANist Member Pricing Dashboard">
       
-      {/* 1. Introductory Banner: Adds color and immediate status */}
+      {/* 1. Dynamic Feedback Banner */}
+      {showBanner && actionData?.error && (
+        <s-banner tone="critical" title="Action Failed">
+          <s-paragraph>{actionData.error}</s-paragraph>
+        </s-banner>
+      )}
+
+      {showBanner && actionData?.success && (
+        <s-banner tone="success" title="Success">
+          <s-paragraph>{actionData.message}</s-paragraph>
+        </s-banner>
+      )}
+
       <s-banner tone={isActive ? "info" : "warning"}>
         <s-paragraph>
           {isActive 
@@ -74,14 +133,14 @@ export default function Index() {
         </s-paragraph>
       </s-banner>
 
-      {/* 2. Configuration Health: Makes the app feel "Smart" */}
+      {/* 2. System Health */}
       <s-section heading="System Health">
         <s-unordered-list>
           <s-list-item>
             <strong>Function Status:</strong> {functionId ? "✅ Connected" : "❌ Extension Missing"}
           </s-list-item>
           <s-list-item>
-            <strong>Type:</strong> Automatic Member Price Discount
+            <strong>Current Status:</strong> {isActive ? "🟢 Active" : "⚪ Offline"}
           </s-list-item>
           <s-list-item>
             <strong>Target Audience:</strong> Customers with <em>imanist_loyalty_enrolled_date</em>
@@ -92,41 +151,27 @@ export default function Index() {
       {/* 3. Main Control Section */}
       <s-section heading="App Control">
         <s-paragraph>
-          Toggle the switch below to enable or disable the price-swapping logic across your entire store.
+          Click the button below to toggle the price-swapping logic.
         </s-paragraph>
         
-        <s-paragraph>
-          Current Mode: <strong>{isActive ? 'Live' : 'Offline'}</strong>
-        </s-paragraph>
-
         <s-button 
           variant="primary"
           tone={isActive ? "critical" : "primary"}
           disabled={isLoading || (!functionId && !isActive)}
-          onClick={() => submit({ actionType: isActive ? 'deactivate' : 'activate', functionId, discountId }, { method: 'post' })}
+          onClick={handleToggle}
         >
           {isLoading ? 'Processing...' : (isActive ? 'Deactivate' : 'Activate')}
         </s-button>
       </s-section>
 
-      {/* 4. Aside Column: Best Practices & Links */}
+      {/* 4. Aside Checklist */}
       <s-section slot="aside" heading="Setup Checklist">
-        <s-paragraph>Ensure these are configured for the logic to trigger:</s-paragraph>
+        <s-paragraph>Ensure these are configured:</s-paragraph>
         <s-unordered-list>
-          <s-list-item>
-            <strong>Product:</strong> Add <em>member_price</em> (Money type).
-          </s-list-item>
-          <s-list-item>
-            <strong>Customer:</strong> Fill the <em>Enrolled Date</em>.
-          </s-list-item>
-          <s-list-item>
-            <strong>Storefront:</strong> Members must be <strong>logged in</strong>.
-          </s-list-item>
+          <s-list-item><strong>Product:</strong> Metafield <em>member_price</em> added.</s-list-item>
+          <s-list-item><strong>Customer:</strong> Metafield <em>Enrolled Date</em> filled.</s-list-item>
+          <s-list-item><strong>Storefront:</strong> Use a test account to verify.</s-list-item>
         </s-unordered-list>
-        
-        <s-paragraph style={{ marginTop: '20px' }}>
-          Need help? <s-link href="/app/additional">View Documentation</s-link>
-        </s-paragraph>
       </s-section>
 
     </s-page>

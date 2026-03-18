@@ -24,6 +24,7 @@ api_version = "2025-01"
 scopes = "write_products,write_metaobjects,write_metaobject_definitions,write_discounts"
 
 [auth]
+use_online_tokens = true
 redirect_urls = [ "https://member-price-discount-production.up.railway.app/api/auth" ]
 
 [product.metafields.app.demo_info]
