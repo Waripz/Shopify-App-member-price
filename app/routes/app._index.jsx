@@ -1,14 +1,23 @@
 import { useSubmit, useActionData, useNavigation, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
 import { useEffect, useState } from "react";
-
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
+  
+  // We remove "status:active" to find the discount even if it's currently disabled
   const response = await admin.graphql(`
     query checkDiscount {
       shopifyFunctions(first: 10) { nodes { id title } }
-      discountNodes(first: 50, query: "status:active") {
-        nodes { id discount { ... on DiscountAutomaticApp { title } } }
+      discountNodes(first: 10, query: "title:'IMANist Member Special Price'") {
+        nodes { 
+          id 
+          discount { 
+            ... on DiscountAutomaticApp { 
+              title 
+              status
+            } 
+          } 
+        }
       }
     }
   `);
@@ -18,12 +27,12 @@ export const loader = async ({ request }) => {
   const discounts = resJson.data?.discountNodes?.nodes || [];
   
   const ourFunction = functions.find(f => f.title === "member-price-discount");
-  const activeDiscountNode = discounts.find(d => d.discount?.title === "IMANist Member Special Price");
+  // We find the discount by title, regardless of it being ACTIVE or EXPIRED
+  const existingDiscount = discounts.find(d => d.discount?.title === "IMANist Member Special Price");
 
-  // In the new template, we return raw objects instead of using the json() helper
   return { 
-    isActive: !!activeDiscountNode, 
-    discountId: activeDiscountNode?.id || null,
+    isActive: existingDiscount?.discount?.status === "ACTIVE", 
+    discountId: existingDiscount?.id || null,
     functionId: ourFunction?.id || null 
   };
 };
@@ -35,48 +44,42 @@ export const action = async ({ request }) => {
   const functionId = formData.get("functionId");
   const discountId = formData.get("discountId");
 
-  try {
-    if (actionType === "activate") {
-      const response = await admin.graphql(`
-        mutation create($functionId: String!) {
-          discountAutomaticAppCreate(automaticAppDiscount: {
-            title: "IMANist Member Special Price",
-            functionId: $functionId,
-            startsAt: "${new Date().toISOString()}",
-            discountClasses: [PRODUCT]
-          }) { 
-            userErrors { field message } 
-            automaticAppDiscount { discountId }
-          }
-        }`, { variables: { functionId } });
+  if (actionType === "activate") {
+    // If it already exists but is just offline, we don't create a new one!
+    if (discountId) {
+       return { error: "Discount already exists. Try refreshing the page." };
+    }
 
-      const resJson = await response.json();
-      const errors = resJson.data?.discountAutomaticAppCreate?.userErrors;
+    const response = await admin.graphql(`
+      mutation create($functionId: String!) {
+        discountAutomaticAppCreate(automaticAppDiscount: {
+          title: "IMANist Member Special Price",
+          functionId: $functionId,
+          startsAt: "${new Date().toISOString()}",
+          discountClasses: [PRODUCT]
+        }) { 
+          userErrors { message } 
+        }
+      }`, { variables: { functionId } });
       
-      if (errors && errors.length > 0) {
-        return { error: errors[0].message };
-      }
-      return { success: true, message: "Member pricing activated!" };
-    }
+    const resJson = await response.json();
+    const errors = resJson.data?.discountAutomaticAppCreate?.userErrors;
+    if (errors?.length > 0) return { error: errors[0].message };
+    
+    return { success: true, message: "Activated!" };
+  }
 
-    if (actionType === "deactivate") {
-      const response = await admin.graphql(`
-        mutation delete($id: ID!) {
-          discountAutomaticDelete(id: $id) { 
-            userErrors { field message } 
-          }
-        }`, { variables: { id: discountId } });
+  if (actionType === "deactivate") {
+    const response = await admin.graphql(`
+      mutation delete($id: ID!) {
+        discountAutomaticDelete(id: $id) { userErrors { message } }
+      }`, { variables: { id: discountId } });
 
-      const resJson = await response.json();
-      const errors = resJson.data?.discountAutomaticDelete?.userErrors;
+    const resJson = await response.json();
+    const errors = resJson.data?.discountAutomaticDelete?.userErrors;
+    if (errors?.length > 0) return { error: errors[0].message };
 
-      if (errors && errors.length > 0) {
-        return { error: errors[0].message };
-      }
-      return { success: true, message: "Member pricing deactivated." };
-    }
-  } catch (err) {
-    return { error: "Database connection failed. Ensure Railway Postgres is Online." };
+    return { success: true, message: "Deactivated!" };
   }
   return null;
 };
