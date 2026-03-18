@@ -1,0 +1,69 @@
+{% comment %}
+  Member Price Display Block
+  Shows the member price for logged-in customers.
+  Reads from product metafield: custom.member_price
+{% endcomment %}
+
+{% if customer %}
+  {% assign member_price_meta = product.metafields.custom.member_price %}
+  {% if member_price_meta != blank %}
+    <div class="member-price-block" style="
+      margin: 12px 0;
+      padding: 10px 16px;
+      background: {{ block.settings.bg_color }};
+      border-radius: 8px;
+      border: 1px solid {{ block.settings.border_color }};
+    ">
+      <span style="
+        font-size: {{ block.settings.font_size }}px;
+        font-weight: 600;
+        color: {{ block.settings.text_color }};
+      ">
+        {{ block.settings.label }}: {{ member_price_meta.value | money }}
+      </span>
+    </div>
+  {% endif %}
+{% endif %}
+
+{% schema %}
+{
+  "name": "Member Price",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "label",
+      "label": "Label",
+      "default": "Member Price"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#f0f9f0"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border Color",
+      "default": "#c3e6c3"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font Size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "default": 16,
+      "unit": "px"
+    }
+  ]
+}
+{% endschema %}
