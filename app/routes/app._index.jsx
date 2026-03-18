@@ -1,6 +1,5 @@
-import { useSubmit, useActionData, useNavigation, useLoaderData } from "@remix-run/react";
+import { useSubmit, useActionData, useNavigation, useLoaderData } from "react-router";
 import { authenticate } from "../shopify.server";
-import { json } from "@remix-run/node";
 import { useEffect, useState } from "react";
 
 export const loader = async ({ request }) => {
@@ -21,11 +20,12 @@ export const loader = async ({ request }) => {
   const ourFunction = functions.find(f => f.title === "member-price-discount");
   const activeDiscountNode = discounts.find(d => d.discount?.title === "IMANist Member Special Price");
 
-  return json({ 
+  // In the new template, we return raw objects instead of using the json() helper
+  return { 
     isActive: !!activeDiscountNode, 
     discountId: activeDiscountNode?.id || null,
     functionId: ourFunction?.id || null 
-  });
+  };
 };
 
 export const action = async ({ request }) => {
@@ -54,9 +54,9 @@ export const action = async ({ request }) => {
       const errors = resJson.data?.discountAutomaticAppCreate?.userErrors;
       
       if (errors && errors.length > 0) {
-        return json({ error: errors[0].message });
+        return { error: errors[0].message };
       }
-      return json({ success: true, message: "Discount activated successfully!" });
+      return { success: true, message: "Member pricing activated!" };
     }
 
     if (actionType === "deactivate") {
@@ -71,12 +71,12 @@ export const action = async ({ request }) => {
       const errors = resJson.data?.discountAutomaticDelete?.userErrors;
 
       if (errors && errors.length > 0) {
-        return json({ error: errors[0].message });
+        return { error: errors[0].message };
       }
-      return json({ success: true, message: "Discount deactivated." });
+      return { success: true, message: "Member pricing deactivated." };
     }
   } catch (err) {
-    return json({ error: "Server error. Please check Railway logs." });
+    return { error: "Database connection failed. Ensure Railway Postgres is Online." };
   }
   return null;
 };
@@ -87,11 +87,10 @@ export default function Index() {
   const submit = useSubmit();
   const nav = useNavigation();
   
-  // High-precision loading state
   const isLoading = nav.state !== "idle";
   const [showBanner, setShowBanner] = useState(false);
 
-  // Trigger success/error banner visibility
+  // Manage temporary success/error feedback
   useEffect(() => {
     if (actionData?.success || actionData?.error) {
       setShowBanner(true);
@@ -101,18 +100,20 @@ export default function Index() {
   }, [actionData]);
 
   const handleToggle = () => {
-    const data = {
-      actionType: isActive ? 'deactivate' : 'activate',
-      functionId: functionId || "",
-      discountId: discountId || "",
-    };
-    submit(data, { method: "post" });
+    submit(
+      { 
+        actionType: isActive ? 'deactivate' : 'activate', 
+        functionId: functionId || "", 
+        discountId: discountId || "" 
+      }, 
+      { method: "post" }
+    );
   };
 
   return (
     <s-page heading="IMANist Member Pricing Dashboard">
       
-      {/* 1. Dynamic Feedback Banner */}
+      {/* 1. Status Banners */}
       {showBanner && actionData?.error && (
         <s-banner tone="critical" title="Action Failed">
           <s-paragraph>{actionData.error}</s-paragraph>
@@ -140,7 +141,7 @@ export default function Index() {
             <strong>Function Status:</strong> {functionId ? "✅ Connected" : "❌ Extension Missing"}
           </s-list-item>
           <s-list-item>
-            <strong>Current Status:</strong> {isActive ? "🟢 Active" : "⚪ Offline"}
+            <strong>App Status:</strong> {isActive ? "🟢 Live" : "⚪ Offline"}
           </s-list-item>
           <s-list-item>
             <strong>Target Audience:</strong> Customers with <em>imanist_loyalty_enrolled_date</em>
@@ -148,10 +149,10 @@ export default function Index() {
         </s-unordered-list>
       </s-section>
 
-      {/* 3. Main Control Section */}
+      {/* 3. Main Control */}
       <s-section heading="App Control">
         <s-paragraph>
-          Click the button below to toggle the price-swapping logic.
+          Use the button below to toggle the price-swapping logic across your store.
         </s-paragraph>
         
         <s-button 
@@ -164,14 +165,23 @@ export default function Index() {
         </s-button>
       </s-section>
 
-      {/* 4. Aside Checklist */}
+      {/* 4. Setup Checklist Sidebar */}
       <s-section slot="aside" heading="Setup Checklist">
-        <s-paragraph>Ensure these are configured:</s-paragraph>
+        <s-paragraph>Ensure these are configured for the logic to trigger:</s-paragraph>
         <s-unordered-list>
-          <s-list-item><strong>Product:</strong> Metafield <em>member_price</em> added.</s-list-item>
-          <s-list-item><strong>Customer:</strong> Metafield <em>Enrolled Date</em> filled.</s-list-item>
-          <s-list-item><strong>Storefront:</strong> Use a test account to verify.</s-list-item>
+          <s-list-item>
+            <strong>Product:</strong> Add <em>member_price</em> (Money type).
+          </s-list-item>
+          <s-list-item>
+            <strong>Customer:</strong> Fill the <em>Enrolled Date</em>.
+          </s-list-item>
+          <s-list-item>
+            <strong>Storefront:</strong> Members must be <strong>logged in</strong>.
+          </s-list-item>
         </s-unordered-list>
+        <s-paragraph style={{ marginTop: '20px' }}>
+          Need help? <s-link href="/app/additional">View Documentation</s-link>
+        </s-paragraph>
       </s-section>
 
     </s-page>
