@@ -2,7 +2,7 @@
 
 client_id = "3f6b614f80c89a60eea9928c44835fef"
 name = "Member price app"
-application_url = "https://saturday-utah-non-notifications.trycloudflare.com"
+application_url = "https://member-price-discount-production.up.railway.app"
 embedded = true
 
 [build]
@@ -24,7 +24,7 @@ api_version = "2025-01"
 scopes = "write_products,write_metaobjects,write_metaobject_definitions,write_discounts"
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [ "https://member-price-discount-production.up.railway.app/api/auth" ]
 
 [product.metafields.app.demo_info]
 type = "single_line_text_field"
