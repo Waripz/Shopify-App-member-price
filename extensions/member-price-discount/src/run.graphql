@@ -2,13 +2,13 @@ query RunInput {
   cart {
     buyerIdentity {
       customer {
-        # Matches your screenshot exactly
-        metafield(namespace: "custom", key: "imanist_loyalty_enrolled_date") {
+        metafield(namespace: "loyaltylion", key: "enroll_date") {
           value
         }
       }
     }
     lines {
+      id # <--- THIS WAS MISSING. Add this line!
       quantity
       cost {
         totalAmount {
@@ -20,7 +20,6 @@ query RunInput {
         ... on ProductVariant {
           id
           product {
-            # Matches your screenshot exactly
             metafield(namespace: "custom", key: "member_price") {
               value
             }
