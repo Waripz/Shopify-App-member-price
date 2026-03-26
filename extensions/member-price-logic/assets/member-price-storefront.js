@@ -269,6 +269,7 @@
         }
         saleEl.textContent = memberFormatted;
         saleEl.classList.add('mp-value');
+        addBadge(priceBox, cfg.badgeText);
       }
     }
   }
