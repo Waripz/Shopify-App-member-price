@@ -4,7 +4,8 @@
   for logged-in members. Enable this in Theme Editor > App embeds.
 {%- endcomment -%}
 
-{%- if customer -%}
+{%- comment -%} DEBUG: temporarily removed customer check for testing {%- endcomment -%}
+<!-- MEMBER PRICE EMBED ACTIVE -->
   <style>
     .mp-badge {
       display: inline-block;
@@ -91,8 +92,7 @@
     </script>
   {%- endif -%}
 
-  {{ 'member-price-storefront.js' | asset_url | script_tag }}
-{%- endif -%}
+  <script src="{{ 'member-price-storefront.js' | asset_url }}" defer="defer"></script>
 
 {% schema %}
 {
