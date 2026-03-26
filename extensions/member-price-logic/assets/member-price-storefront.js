@@ -79,15 +79,25 @@
      Product Page
   ———————————————————————————— */
   function handleProduct(data, cfg) {
-    var container = document.querySelector(cfg.pdpContainer);
-    if (!container) {
-      console.warn('[MemberPrice] PDP container not found:', cfg.pdpContainer);
-      return;
+    // Find ALL matching containers and pick the one that has the price element
+    var containers = document.querySelectorAll(cfg.pdpContainer);
+    var container = null;
+    var priceEl = null;
+
+    console.log('[MemberPrice] Found', containers.length, 'containers matching:', cfg.pdpContainer);
+
+    for (var i = 0; i < containers.length; i++) {
+      var candidate = containers[i].querySelector(cfg.pdpPrice);
+      if (candidate) {
+        container = containers[i];
+        priceEl = candidate;
+        console.log('[MemberPrice] Using container #' + i, container);
+        break;
+      }
     }
 
-    var priceEl = container.querySelector(cfg.pdpPrice);
-    if (!priceEl) {
-      console.warn('[MemberPrice] PDP price element not found:', cfg.pdpPrice);
+    if (!container || !priceEl) {
+      console.warn('[MemberPrice] No container with price element found. Container sel:', cfg.pdpContainer, 'Price sel:', cfg.pdpPrice);
       return;
     }
 
