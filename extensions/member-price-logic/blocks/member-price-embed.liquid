@@ -71,6 +71,24 @@
     </script>
   {%- endif -%}
 
+  {%- if template contains 'search' -%}
+    <script id="mp-listing" type="application/json">
+      {
+        {%- assign mp_first = true -%}
+        {%- for item in search.results -%}
+          {%- if item.object_type == 'product' -%}
+            {%- assign mp = item.metafields.custom.member_price -%}
+            {%- if mp != blank -%}
+              {%- unless mp_first -%},{%- endunless -%}
+              {{ item.handle | json }}: {{ mp.value | json }}
+              {%- assign mp_first = false -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+      }
+    </script>
+  {%- endif -%}
+
   <script src="{{ 'member-price-storefront.js' | asset_url }}" defer="defer"></script>
 {%- endif -%}
 
