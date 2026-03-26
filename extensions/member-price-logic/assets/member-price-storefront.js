@@ -105,14 +105,6 @@
     
     if (Object.keys(allPrices).length > 0) {
       handleCart(allPrices, cfg);
-      
-      // Watch for mini-cart drawer opening dynamically
-      var observer = new MutationObserver(function() {
-        handleCart(allPrices, cfg);
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-      // Stop observing after 30 seconds to avoid performance issues
-      setTimeout(function() { observer.disconnect(); }, 30000);
     }
   }
 
