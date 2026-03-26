@@ -5,8 +5,12 @@
 (function () {
   'use strict';
 
-  function init() {
-    console.log('[MemberPrice] Init started');
+  var MAX_RETRIES = 10;
+  var RETRY_DELAY = 500; // ms
+
+  function init(attempt) {
+    attempt = attempt || 1;
+    console.log('[MemberPrice] Init attempt', attempt);
 
     var cfgEl = document.getElementById('mp-config');
     if (!cfgEl) {
@@ -19,16 +23,32 @@
       console.error('[MemberPrice] Config parse error:', e);
       return;
     }
-    console.log('[MemberPrice] Config loaded:', cfg);
 
     // ——— Product page ———
     var prodEl = document.getElementById('mp-product');
     if (prodEl) {
-      console.log('[MemberPrice] Product data found');
       try {
         var prodData = JSON.parse(prodEl.textContent);
         console.log('[MemberPrice] Product data:', prodData);
-        handleProduct(prodData, cfg);
+
+        // Try to find the price element directly
+        var priceEl = document.querySelector('span.price-on-sale, ' + cfg.pdpContainer + ' ' + cfg.pdpPrice);
+        console.log('[MemberPrice] Direct price-on-sale query result:', priceEl);
+
+        if (!priceEl && attempt < MAX_RETRIES) {
+          console.log('[MemberPrice] Price element not ready, retrying in', RETRY_DELAY, 'ms...');
+          setTimeout(function() { init(attempt + 1); }, RETRY_DELAY);
+          return;
+        }
+
+        if (priceEl) {
+          handleProduct(prodData, cfg, priceEl);
+        } else {
+          console.warn('[MemberPrice] Price element never found after', attempt, 'attempts');
+          // Last resort: log all elements with class containing "price"
+          var allPriceEls = document.querySelectorAll('[class*="price"]');
+          console.log('[MemberPrice] All elements with "price" in class:', allPriceEls);
+        }
       } catch (e) {
         console.error('[MemberPrice] Product data parse error:', e);
       }
@@ -37,10 +57,8 @@
     // ——— Collection / Search page ———
     var listEl = document.getElementById('mp-listing');
     if (listEl) {
-      console.log('[MemberPrice] Listing data found');
       try {
         var listData = JSON.parse(listEl.textContent);
-        console.log('[MemberPrice] Listing data:', listData);
         handleListing(listData, cfg);
       } catch (e) {
         console.error('[MemberPrice] Listing data parse error:', e);
@@ -52,10 +70,6 @@
      Format money value
   ———————————————————————————— */
   function formatMoney(value) {
-    // value could be:
-    // 1. A money object: { "amount": "25.50", "currency_code": "MYR" }
-    // 2. A string: "25.50"
-    // 3. A number: 2550 (cents)
     var amount;
     var currency = 'RM';
 
@@ -67,7 +81,6 @@
     } else if (typeof value === 'string') {
       amount = parseFloat(value);
     } else if (typeof value === 'number') {
-      // Shopify prices are in cents
       amount = value / 100;
     }
 
@@ -78,28 +91,9 @@
   /* ————————————————————————————
      Product Page
   ———————————————————————————— */
-  function handleProduct(data, cfg) {
-    // Find ALL matching containers and pick the one that has the price element
-    var containers = document.querySelectorAll(cfg.pdpContainer);
-    var container = null;
-    var priceEl = null;
-
-    console.log('[MemberPrice] Found', containers.length, 'containers matching:', cfg.pdpContainer);
-
-    for (var i = 0; i < containers.length; i++) {
-      var candidate = containers[i].querySelector(cfg.pdpPrice);
-      if (candidate) {
-        container = containers[i];
-        priceEl = candidate;
-        console.log('[MemberPrice] Using container #' + i, container);
-        break;
-      }
-    }
-
-    if (!container || !priceEl) {
-      console.warn('[MemberPrice] No container with price element found. Container sel:', cfg.pdpContainer, 'Price sel:', cfg.pdpPrice);
-      return;
-    }
+  function handleProduct(data, cfg, priceEl) {
+    // Find the container from the price element
+    var container = priceEl.closest(cfg.pdpContainer) || priceEl.parentElement;
 
     var memberFormatted = formatMoney(data.memberPrice);
     if (!memberFormatted) {
@@ -107,7 +101,7 @@
       return;
     }
 
-    console.log('[MemberPrice] Replacing PDP price with:', memberFormatted);
+    console.log('[MemberPrice] SUCCESS - Replacing price with:', memberFormatted);
 
     var currentPrice = priceEl.textContent.trim();
     var compareEl = container.querySelector(cfg.pdpCompare);
@@ -133,14 +127,10 @@
      Collection / Search Listing
   ———————————————————————————— */
   function handleListing(prices, cfg) {
-    if (!prices || Object.keys(prices).length === 0) {
-      console.log('[MemberPrice] No listing prices to apply');
-      return;
-    }
+    if (!prices || Object.keys(prices).length === 0) return;
 
     var processed = [];
     var links = document.querySelectorAll('a[href*="/products/"]');
-    console.log('[MemberPrice] Found', links.length, 'product links');
 
     for (var i = 0; i < links.length; i++) {
       var handle = extractHandle(links[i].getAttribute('href'));
@@ -198,10 +188,9 @@
     container.appendChild(b);
   }
 
-  // ——— Run ———
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // ——— Run after window fully loads (including all scripts) ———
+  window.addEventListener('load', function() {
+    // Extra delay to let other scripts finish DOM manipulation
+    setTimeout(function() { init(1); }, 300);
+  });
 })();
