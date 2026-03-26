@@ -96,7 +96,7 @@
     </script>
   {%- endif -%}
 
-  {%- if template == 'index' -%}
+  {%- if template contains 'index' -%}
     <script id="mp-listing" type="application/json">
       {
         {%- assign mp_first = true -%}
