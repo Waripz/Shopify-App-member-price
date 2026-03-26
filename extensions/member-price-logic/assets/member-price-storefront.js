@@ -317,11 +317,11 @@
       if (!priceBox) continue;
       
       // We removed the `processed.indexOf(priceBox) !== -1` check here 
-      // because Slick slider clones mean we might evaluate the same visual 
-      // card multiple times if it has multiple links (like image + title).
-      // Instead, we will check if it already has a badge to prevent double processing.
-      if (priceBox.querySelector('.mp-badge-sm') || priceBox.classList.contains('mp-processed')) continue;
-      priceBox.classList.add('mp-processed');
+      // Check if this box already has our badge or member price applied.
+      // We do NOT use a class on the box itself (like mp-processed) because 
+      // apps like Appikon might replace the innerHTML of the box entirely,
+      // leaving the class but destroying our changes.
+      if (priceBox.querySelector('.mp-badge-sm') || priceBox.querySelector('.mp-value')) continue;
 
       var saleEl = priceBox.querySelector(cfg.colSalePrice);
       var oldEl = priceBox.querySelector(cfg.colOldPrice);
