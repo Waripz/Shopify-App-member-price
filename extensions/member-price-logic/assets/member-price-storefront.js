@@ -104,7 +104,26 @@
     }
     
     if (Object.keys(allPrices).length > 0) {
+      // Run immediately
       handleCart(allPrices, cfg);
+      if (listEl && listData) handleListing(listData, cfg);
+
+      // Other apps (like Appikon) or theme AJAX might overwrite our prices.
+      // We use a safe observer that only acts if our classes are missing.
+      var observer = new MutationObserver(function() {
+        handleCart(allPrices, cfg);
+        if (listEl && listData) handleListing(listData, cfg);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Also run periodically for 10 seconds as a final fallback
+      var runs = 0;
+      var interval = setInterval(function() {
+        handleCart(allPrices, cfg);
+        if (listEl && listData) handleListing(listData, cfg);
+        runs++;
+        if (runs > 10) clearInterval(interval);
+      }, 1000);
     }
   }
 
@@ -295,8 +314,14 @@
       }
 
       var priceBox = card.querySelector(cfg.colPriceBox);
-      if (!priceBox || processed.indexOf(priceBox) !== -1) continue;
-      processed.push(priceBox);
+      if (!priceBox) continue;
+      
+      // We removed the `processed.indexOf(priceBox) !== -1` check here 
+      // because Slick slider clones mean we might evaluate the same visual 
+      // card multiple times if it has multiple links (like image + title).
+      // Instead, we will check if it already has a badge to prevent double processing.
+      if (priceBox.querySelector('.mp-badge-sm') || priceBox.classList.contains('mp-processed')) continue;
+      priceBox.classList.add('mp-processed');
 
       var saleEl = priceBox.querySelector(cfg.colSalePrice);
       var oldEl = priceBox.querySelector(cfg.colOldPrice);
@@ -340,7 +365,7 @@
           oldEl.parentNode.insertBefore(badge2, oldEl.nextSibling);
         }
       } else {
-        // Fallback: try to find any price element
+        // Fallback: try to find any price element (like price-regular)
         var anyPrice = priceBox.querySelector('[class*="price"]');
         if (anyPrice) {
           console.log('[MemberPrice] Listing: using fallback price el:', anyPrice.className);
@@ -352,6 +377,12 @@
           anyPrice.parentNode.insertBefore(fb, anyPrice);
           anyPrice.textContent = memberFormatted;
           anyPrice.classList.add('mp-value');
+          if (!anyPrice.parentNode.querySelector('.mp-badge-sm')) {
+            var badge3 = document.createElement('span');
+            badge3.className = 'mp-badge-sm';
+            badge3.textContent = cfg.badgeText;
+            anyPrice.parentNode.insertBefore(badge3, anyPrice.nextSibling);
+          }
         }
       }
     }
