@@ -1,0 +1,182 @@
+{%- comment -%}
+  Member Price Storefront Embed
+  App embed block — alters price display on product & collection pages
+  for logged-in members. Enable this in Theme Editor > App embeds.
+{%- endcomment -%}
+
+{%- if customer -%}
+  <style>
+    .mp-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: {{ block.settings.badge_color }};
+      background: {{ block.settings.badge_bg_color }};
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .mp-original {
+      text-decoration: line-through !important;
+      opacity: 0.55;
+    }
+    .mp-value {
+      font-weight: 700;
+      color: {{ block.settings.member_price_color }};
+    }
+  </style>
+
+  {%- comment -%} Config for JS {%- endcomment -%}
+  <script id="mp-config" type="application/json">
+    {
+      "pdpContainer": {{ block.settings.pdp_container | json }},
+      "pdpPrice": {{ block.settings.pdp_price | json }},
+      "pdpCompare": {{ block.settings.pdp_compare | json }},
+      "colPriceBox": {{ block.settings.col_price_box | json }},
+      "colSalePrice": {{ block.settings.col_sale_price | json }},
+      "colOldPrice": {{ block.settings.col_old_price | json }},
+      "badgeText": {{ block.settings.badge_text | json }}
+    }
+  </script>
+
+  {%- comment -%} ——— PRODUCT PAGE ——— {%- endcomment -%}
+  {%- if template contains 'product' -%}
+    {%- assign mp = product.metafields.custom.member_price -%}
+    {%- if mp != blank -%}
+      <script id="mp-product" type="application/json">
+        {
+          "memberPrice": {{ mp.value | money | json }},
+          "originalPrice": {{ product.price | money | json }}
+        }
+      </script>
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- comment -%} ——— COLLECTION PAGE ——— {%- endcomment -%}
+  {%- if template contains 'collection' -%}
+    <script id="mp-listing" type="application/json">
+      {
+        {%- assign mp_first = true -%}
+        {%- for p in collection.products -%}
+          {%- assign mp = p.metafields.custom.member_price -%}
+          {%- if mp != blank -%}
+            {%- unless mp_first -%},{%- endunless -%}
+            {{ p.handle | json }}: {{ mp.value | money | json }}
+            {%- assign mp_first = false -%}
+          {%- endif -%}
+        {%- endfor -%}
+      }
+    </script>
+  {%- endif -%}
+
+  {%- comment -%} ——— SEARCH PAGE ——— {%- endcomment -%}
+  {%- if template contains 'search' and search.results_count > 0 -%}
+    <script id="mp-listing" type="application/json">
+      {
+        {%- assign mp_first = true -%}
+        {%- for item in search.results -%}
+          {%- if item.object_type == 'product' -%}
+            {%- assign mp = item.metafields.custom.member_price -%}
+            {%- if mp != blank -%}
+              {%- unless mp_first -%},{%- endunless -%}
+              {{ item.handle | json }}: {{ mp.value | money | json }}
+              {%- assign mp_first = false -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+      }
+    </script>
+  {%- endif -%}
+
+  {{ 'member-price-storefront.js' | asset_url | script_tag }}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Member Price Display",
+  "target": "body",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Product Page Selectors"
+    },
+    {
+      "type": "text",
+      "id": "pdp_container",
+      "label": "Price Container",
+      "default": "div.prices",
+      "info": "CSS selector for the price wrapper on product pages"
+    },
+    {
+      "type": "text",
+      "id": "pdp_price",
+      "label": "Current/Sale Price",
+      "default": ".price-on-sale",
+      "info": "CSS selector for the displayed price"
+    },
+    {
+      "type": "text",
+      "id": "pdp_compare",
+      "label": "Compare-at Price",
+      "default": ".compare-price",
+      "info": "CSS selector for the strikethrough price"
+    },
+    {
+      "type": "header",
+      "content": "Collection Page Selectors"
+    },
+    {
+      "type": "text",
+      "id": "col_price_box",
+      "label": "Price Box",
+      "default": "div.price-box",
+      "info": "CSS selector for each product card's price container"
+    },
+    {
+      "type": "text",
+      "id": "col_sale_price",
+      "label": "Sale/Special Price",
+      "default": ".special-price",
+      "info": "CSS selector for the sale price in product cards"
+    },
+    {
+      "type": "text",
+      "id": "col_old_price",
+      "label": "Old/Original Price",
+      "default": ".old-price",
+      "info": "CSS selector for the old price in product cards"
+    },
+    {
+      "type": "header",
+      "content": "Styling"
+    },
+    {
+      "type": "text",
+      "id": "badge_text",
+      "label": "Badge Text",
+      "default": "Member Price"
+    },
+    {
+      "type": "color",
+      "id": "badge_color",
+      "label": "Badge Text Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "badge_bg_color",
+      "label": "Badge Background",
+      "default": "#e63946"
+    },
+    {
+      "type": "color",
+      "id": "member_price_color",
+      "label": "Member Price Text Color",
+      "default": "#e63946"
+    }
+  ]
+}
+{% endschema %}
