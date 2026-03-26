@@ -12,6 +12,13 @@
     attempt = attempt || 1;
     console.log('[MemberPrice] Init attempt', attempt);
 
+    // Double-check: only run for logged-in customers
+    // Shopify themes add 'customer-logged-in' class to <body>
+    if (!document.body.classList.contains('customer-logged-in')) {
+      console.log('[MemberPrice] Customer not logged in, skipping');
+      return;
+    }
+
     var cfgEl = document.getElementById('mp-config');
     if (!cfgEl) {
       console.log('[MemberPrice] No mp-config found, exiting');
