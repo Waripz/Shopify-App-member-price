@@ -87,9 +87,9 @@
     }
     
     // From product data
-    if (dataEl) {
+    if (prodEl) {
       try {
-        var pData = JSON.parse(dataEl.textContent);
+        var pData = JSON.parse(prodEl.textContent);
         var handle = window.location.pathname.match(/\/products\/([^?#\/]+)/);
         if (handle && pData.memberPrice) allPrices[handle[1]] = pData.memberPrice;
       } catch (e) { /* skip */ }
@@ -356,10 +356,9 @@
   ———————————————————————————— */
   function handleCart(prices, cfg) {
     if (!prices || Object.keys(prices).length === 0) return;
-    console.log('[MemberPrice] Cart prices:', prices);
+    console.log('[MemberPrice] Cart prices:', JSON.stringify(prices));
 
-    // Strategy: find ALL product links on the page that are in a cart context,
-    // then walk up to find the price element nearby
+    // Find all product links and walk up to nearest li (cart item container)
     var allLinks = document.querySelectorAll('a[href*="/products/"]');
     var processed = [];
 
@@ -371,38 +370,44 @@
       var memberFormatted = formatMoney(prices[handle]);
       if (!memberFormatted) continue;
 
-      // Walk up to find a cart-related container
-      var container = null;
-      var cur = link.parentElement;
-      for (var d = 0; d < 10 && cur; d++) {
-        var cls = (cur.className || '').toLowerCase();
-        var id = (cur.id || '').toLowerCase();
-        if (cls.indexOf('cart') !== -1 || id.indexOf('cart') !== -1) {
-          container = cur;
+      // Walk up to the nearest <li> which is the cart item container
+      var li = link.closest('li');
+      if (!li) continue;
+
+      // Check this li is inside a cart-related context
+      var inCart = false;
+      var parent = li.parentElement;
+      for (var d = 0; d < 8 && parent; d++) {
+        var cls = (parent.className || '' ).toString().toLowerCase();
+        var id = (parent.id || '').toString().toLowerCase();
+        var tag = parent.tagName.toLowerCase();
+        if (cls.indexOf('cart') !== -1 || id.indexOf('cart') !== -1 ||
+            cls.indexOf('mini-products') !== -1 || tag === 'form' && parent.getAttribute('action') && parent.getAttribute('action').indexOf('/cart') !== -1) {
+          inCart = true;
           break;
         }
-        cur = cur.parentElement;
+        parent = parent.parentElement;
       }
-      if (!container) continue;
+      if (!inCart) continue;
 
-      // Find all span.price elements in this container
-      var priceEls = container.querySelectorAll('span.price');
+      // Find all span.price elements in this li
+      var priceEls = li.querySelectorAll('span.price');
       if (priceEls.length === 0) continue;
+      console.log('[MemberPrice] Cart: found', priceEls.length, 'price elements for', handle);
 
       for (var j = 0; j < priceEls.length; j++) {
         var priceEl = priceEls[j];
         if (processed.indexOf(priceEl) !== -1) continue;
-        if (priceEl.querySelector('.mp-badge-cart')) continue;
         processed.push(priceEl);
 
         var currentPrice = priceEl.textContent.trim();
         if (!currentPrice) continue;
 
-        // Replace price
+        // Replace price text
         priceEl.textContent = memberFormatted;
         priceEl.classList.add('mp-value');
 
-        // Add subtle cart badge below
+        // Add subtle cart badge
         var cartBadge = document.createElement('span');
         cartBadge.className = 'mp-badge-cart';
         cartBadge.textContent = cfg.badgeText;
