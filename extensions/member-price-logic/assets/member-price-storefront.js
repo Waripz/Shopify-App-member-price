@@ -276,15 +276,23 @@
   function handleListing(prices, cfg) {
     if (!prices || Object.keys(prices).length === 0) return;
 
+    console.log('[MemberPrice] handleListing called with', Object.keys(prices).length, 'prices');
+
     var processed = [];
     var links = document.querySelectorAll('a[href*="/products/"]');
+    console.log('[MemberPrice] Found', links.length, 'product links on page');
 
     for (var i = 0; i < links.length; i++) {
       var handle = extractHandle(links[i].getAttribute('href'));
       if (!handle || !prices[handle]) continue;
 
+      console.log('[MemberPrice] Listing: matched handle', handle);
+
       var card = findCardWithPriceBox(links[i], cfg.colPriceBox);
-      if (!card) continue;
+      if (!card) {
+        console.log('[MemberPrice] Listing: no card found for', handle);
+        continue;
+      }
 
       var priceBox = card.querySelector(cfg.colPriceBox);
       if (!priceBox || processed.indexOf(priceBox) !== -1) continue;
@@ -292,6 +300,9 @@
 
       var saleEl = priceBox.querySelector(cfg.colSalePrice);
       var oldEl = priceBox.querySelector(cfg.colOldPrice);
+
+      console.log('[MemberPrice] Listing: saleEl=', saleEl ? saleEl.textContent.trim() : 'null',
+                  'oldEl=', oldEl ? oldEl.textContent.trim() : 'null');
 
       var memberFormatted = formatMoney(prices[handle]);
       if (!memberFormatted) continue;
@@ -311,6 +322,36 @@
           badge.className = 'mp-badge-sm';
           badge.textContent = cfg.badgeText;
           saleEl.parentNode.insertBefore(badge, saleEl.nextSibling);
+        }
+      } else if (oldEl) {
+        // Product not on sale — only has old-price or a regular price
+        var curOldPrice = oldEl.textContent.trim();
+        var newCompare = document.createElement('span');
+        newCompare.textContent = curOldPrice;
+        newCompare.className = 'mp-original';
+        newCompare.style.cssText = 'text-decoration:line-through;opacity:.55;margin-right:6px;';
+        oldEl.parentNode.insertBefore(newCompare, oldEl);
+        oldEl.textContent = memberFormatted;
+        oldEl.classList.add('mp-value');
+        if (!oldEl.parentNode.querySelector('.mp-badge-sm')) {
+          var badge2 = document.createElement('span');
+          badge2.className = 'mp-badge-sm';
+          badge2.textContent = cfg.badgeText;
+          oldEl.parentNode.insertBefore(badge2, oldEl.nextSibling);
+        }
+      } else {
+        // Fallback: try to find any price element
+        var anyPrice = priceBox.querySelector('[class*="price"]');
+        if (anyPrice) {
+          console.log('[MemberPrice] Listing: using fallback price el:', anyPrice.className);
+          var origText = anyPrice.textContent.trim();
+          var fb = document.createElement('span');
+          fb.textContent = origText;
+          fb.className = 'mp-original';
+          fb.style.cssText = 'text-decoration:line-through;opacity:.55;margin-right:6px;';
+          anyPrice.parentNode.insertBefore(fb, anyPrice);
+          anyPrice.textContent = memberFormatted;
+          anyPrice.classList.add('mp-value');
         }
       }
     }
