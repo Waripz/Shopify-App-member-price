@@ -42,37 +42,37 @@
   }
 </script>
 
-{%- if template contains 'product' -%}
-  {%- assign mp = product.metafields.custom.member_price -%}
-  <!-- MP-DEBUG: template=product, metafield={{ mp | json }} -->
-  {%- if mp != blank -%}
-    <script id="mp-product" type="application/json">
+{%- if customer -%}
+  {%- if template contains 'product' -%}
+    {%- assign mp = product.metafields.custom.member_price -%}
+    {%- if mp != blank -%}
+      <script id="mp-product" type="application/json">
+        {
+          "memberPrice": {{ mp.value | json }},
+          "originalPrice": {{ product.price | json }}
+        }
+      </script>
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- if template contains 'collection' -%}
+    <script id="mp-listing" type="application/json">
       {
-        "memberPrice": {{ mp.value | json }},
-        "originalPrice": {{ product.price | json }}
+        {%- assign mp_first = true -%}
+        {%- for p in collection.products -%}
+          {%- assign mp = p.metafields.custom.member_price -%}
+          {%- if mp != blank -%}
+            {%- unless mp_first -%},{%- endunless -%}
+            {{ p.handle | json }}: {{ mp.value | json }}
+            {%- assign mp_first = false -%}
+          {%- endif -%}
+        {%- endfor -%}
       }
     </script>
   {%- endif -%}
-{%- endif -%}
 
-{%- if template contains 'collection' -%}
-  <!-- MP-DEBUG: template=collection -->
-  <script id="mp-listing" type="application/json">
-    {
-      {%- assign mp_first = true -%}
-      {%- for p in collection.products -%}
-        {%- assign mp = p.metafields.custom.member_price -%}
-        {%- if mp != blank -%}
-          {%- unless mp_first -%},{%- endunless -%}
-          {{ p.handle | json }}: {{ mp.value | json }}
-          {%- assign mp_first = false -%}
-        {%- endif -%}
-      {%- endfor -%}
-    }
-  </script>
+  <script src="{{ 'member-price-storefront.js' | asset_url }}" defer="defer"></script>
 {%- endif -%}
-
-<script src="{{ 'member-price-storefront.js' | asset_url }}" defer="defer"></script>
 
 {% schema %}
 {
