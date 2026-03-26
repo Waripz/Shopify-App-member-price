@@ -130,21 +130,19 @@
     </script>
   {%- endif -%}
 
-  {%- if template contains 'cart' -%}
-    <script id="mp-cart" type="application/json">
-      {
-        {%- assign mp_first = true -%}
-        {%- for item in cart.items -%}
-          {%- assign mp = item.product.metafields.custom.member_price -%}
-          {%- if mp != blank -%}
-            {%- unless mp_first -%},{%- endunless -%}
-            {{ item.product.handle | json }}: {{ mp.value | json }}
-            {%- assign mp_first = false -%}
-          {%- endif -%}
-        {%- endfor -%}
-      }
-    </script>
-  {%- endif -%}
+  <script id="mp-cart" type="application/json">
+    {
+      {%- assign mp_first = true -%}
+      {%- for item in cart.items -%}
+        {%- assign mp = item.product.metafields.custom.member_price -%}
+        {%- if mp != blank -%}
+          {%- unless mp_first -%},{%- endunless -%}
+          {{ item.product.handle | json }}: {{ mp.value | json }}
+          {%- assign mp_first = false -%}
+        {%- endif -%}
+      {%- endfor -%}
+    }
+  </script>
 
   <script src="{{ 'member-price-storefront.js' | asset_url }}" defer="defer"></script>
 {%- endif -%}
