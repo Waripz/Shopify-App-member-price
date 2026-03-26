@@ -109,21 +109,27 @@
       if (listEl && listData) handleListing(listData, cfg);
 
       // Other apps (like Appikon) or theme AJAX might overwrite our prices.
-      // We use a safe observer that only acts if our classes are missing.
-      var observer = new MutationObserver(function() {
+      // We use a safe polling interval instead of MutationObserver to avoid infinite loops.
+      var fastRuns = 0;
+      var slowRuns = 0;
+      
+      // Fast poll: every 500ms for the first 5 seconds (10 runs)
+      var fastInterval = setInterval(function() {
         handleCart(allPrices, cfg);
         if (listEl && listData) handleListing(listData, cfg);
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      // Also run periodically for 10 seconds as a final fallback
-      var runs = 0;
-      var interval = setInterval(function() {
-        handleCart(allPrices, cfg);
-        if (listEl && listData) handleListing(listData, cfg);
-        runs++;
-        if (runs > 10) clearInterval(interval);
-      }, 1000);
+        fastRuns++;
+        if (fastRuns >= 10) {
+          clearInterval(fastInterval);
+          
+          // Slow poll: every 2 seconds for the next 30 seconds (15 runs)
+          var slowInterval = setInterval(function() {
+            handleCart(allPrices, cfg);
+            if (listEl && listData) handleListing(listData, cfg);
+            slowRuns++;
+            if (slowRuns >= 15) clearInterval(slowInterval);
+          }, 2000);
+        }
+      }, 500);
     }
   }
 
