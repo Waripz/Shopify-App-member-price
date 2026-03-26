@@ -72,7 +72,15 @@
     }
 
     // ——— Cart page ———
-    handleCart(cfg);
+    var cartEl = document.getElementById('mp-cart');
+    if (cartEl) {
+      try {
+        var cartData = JSON.parse(cartEl.textContent);
+        handleCart(cartData, cfg);
+      } catch (e) {
+        console.error('[MemberPrice] Cart data parse error:', e);
+      }
+    }
   }
 
   /**
@@ -307,7 +315,9 @@
   /* ————————————————————————————
      Cart Page
   ———————————————————————————— */
-  function handleCart(cfg) {
+  function handleCart(prices, cfg) {
+    if (!prices || Object.keys(prices).length === 0) return;
+
     // Find cart items by looking for product links in cart context
     var cartItems = document.querySelectorAll(
       '.cart-collateral, .cart-item, .mini-cart-item, ' +
@@ -320,11 +330,33 @@
 
     for (var i = 0; i < cartItems.length; i++) {
       var item = cartItems[i];
+      
+      // Find the product link to get the handle
+      var link = item.querySelector('a[href*="/products/"]');
+      if (!link) continue;
+      
+      var handle = extractHandle(link.getAttribute('href'));
+      if (!handle || !prices[handle]) continue;
+
+      var memberFormatted = formatMoney(prices[handle]);
+      if (!memberFormatted) continue;
+
       // Find price element inside cart item
       var priceEl = item.querySelector('span.price, .cart-price, .price');
       if (!priceEl || priceEl.querySelector('.mp-badge-cart')) continue;
 
-      addBadge(priceEl, cfg.badgeText, 'mp-badge-cart');
+      // Replace price and add original strikethrough
+      var currentPrice = priceEl.textContent.trim();
+      var newCompare = document.createElement('span');
+      newCompare.textContent = currentPrice;
+      newCompare.className = 'mp-original';
+      newCompare.style.cssText = 'text-decoration:line-through;opacity:.55;margin-right:8px;font-size:0.9em;';
+      
+      priceEl.parentNode.insertBefore(newCompare, priceEl);
+      priceEl.textContent = memberFormatted;
+      priceEl.classList.add('mp-value');
+
+      addBadge(priceEl.parentNode, cfg.badgeText, 'mp-badge-cart');
     }
   }
 

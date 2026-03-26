@@ -30,7 +30,8 @@
     text-transform: uppercase;
     color: {{ block.settings.badge_color }};
     background: {{ block.settings.badge_bg_color }};
-    margin-left: 4px;
+    margin-left: 6px;
+    margin-top: -2px;
     vertical-align: middle;
     line-height: 1.4;
   }
@@ -107,6 +108,22 @@
               {{ item.handle | json }}: {{ mp.value | json }}
               {%- assign mp_first = false -%}
             {%- endif -%}
+          {%- endif -%}
+        {%- endfor -%}
+      }
+    </script>
+  {%- endif -%}
+
+  {%- if template contains 'cart' -%}
+    <script id="mp-cart" type="application/json">
+      {
+        {%- assign mp_first = true -%}
+        {%- for item in cart.items -%}
+          {%- assign mp = item.product.metafields.custom.member_price -%}
+          {%- if mp != blank -%}
+            {%- unless mp_first -%},{%- endunless -%}
+            {{ item.product.handle | json }}: {{ mp.value | json }}
+            {%- assign mp_first = false -%}
           {%- endif -%}
         {%- endfor -%}
       }
