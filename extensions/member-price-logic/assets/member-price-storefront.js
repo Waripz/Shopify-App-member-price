@@ -71,15 +71,48 @@
       }
     }
 
-    // ——— Cart page ———
+    // ——— Cart page + mini-cart drawer ———
+    // Merge all available price data for cart handling
+    var allPrices = {};
+    
+    // From cart-specific data (cart page)
     var cartEl = document.getElementById('mp-cart');
     if (cartEl) {
       try {
         var cartData = JSON.parse(cartEl.textContent);
-        handleCart(cartData, cfg);
+        for (var k in cartData) allPrices[k] = cartData[k];
       } catch (e) {
         console.error('[MemberPrice] Cart data parse error:', e);
       }
+    }
+    
+    // From product data
+    if (dataEl) {
+      try {
+        var pData = JSON.parse(dataEl.textContent);
+        var handle = window.location.pathname.match(/\/products\/([^?#\/]+)/);
+        if (handle && pData.memberPrice) allPrices[handle[1]] = pData.memberPrice;
+      } catch (e) { /* skip */ }
+    }
+    
+    // From listing data
+    if (listEl) {
+      try {
+        var lData = JSON.parse(listEl.textContent);
+        for (var lk in lData) allPrices[lk] = lData[lk];
+      } catch (e) { /* skip */ }
+    }
+    
+    if (Object.keys(allPrices).length > 0) {
+      handleCart(allPrices, cfg);
+      
+      // Watch for mini-cart drawer opening dynamically
+      var observer = new MutationObserver(function() {
+        handleCart(allPrices, cfg);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      // Stop observing after 30 seconds to avoid performance issues
+      setTimeout(function() { observer.disconnect(); }, 30000);
     }
   }
 
@@ -280,7 +313,13 @@
         }
         saleEl.textContent = memberFormatted;
         saleEl.classList.add('mp-value');
-        addBadge(priceBox, cfg.badgeText, 'mp-badge-sm');
+        // Insert badge inline right after the sale element
+        if (!saleEl.parentNode.querySelector('.mp-badge-sm')) {
+          var badge = document.createElement('span');
+          badge.className = 'mp-badge-sm';
+          badge.textContent = cfg.badgeText;
+          saleEl.parentNode.insertBefore(badge, saleEl.nextSibling);
+        }
       }
     }
   }
@@ -313,50 +352,62 @@
   }
 
   /* ————————————————————————————
-     Cart Page
+     Cart Page + Mini Cart
   ———————————————————————————— */
   function handleCart(prices, cfg) {
     if (!prices || Object.keys(prices).length === 0) return;
+    console.log('[MemberPrice] Cart prices:', prices);
 
-    // Find cart items by looking for product links in cart context
-    var cartItems = document.querySelectorAll(
-      '.cart-collateral, .cart-item, .mini-cart-item, ' +
-      '[class*="cart"] .product-details, [class*="cart"] .item, ' +
-      'tr[class*="cart"], .cart-product'
-    );
+    // Strategy: find ALL product links on the page that are in a cart context,
+    // then walk up to find the price element nearby
+    var allLinks = document.querySelectorAll('a[href*="/products/"]');
+    var processed = [];
 
-    if (cartItems.length === 0) return;
-    console.log('[MemberPrice] Cart items found:', cartItems.length);
-
-    for (var i = 0; i < cartItems.length; i++) {
-      var item = cartItems[i];
-      
-      // Find the product link to get the handle
-      var link = item.querySelector('a[href*="/products/"]');
-      if (!link) continue;
-      
+    for (var i = 0; i < allLinks.length; i++) {
+      var link = allLinks[i];
       var handle = extractHandle(link.getAttribute('href'));
       if (!handle || !prices[handle]) continue;
 
       var memberFormatted = formatMoney(prices[handle]);
       if (!memberFormatted) continue;
 
-      // Find price element inside cart item
-      var priceEl = item.querySelector('span.price, .cart-price, .price');
-      if (!priceEl || priceEl.querySelector('.mp-badge-cart')) continue;
+      // Walk up to find a cart-related container
+      var container = null;
+      var cur = link.parentElement;
+      for (var d = 0; d < 10 && cur; d++) {
+        var cls = (cur.className || '').toLowerCase();
+        var id = (cur.id || '').toLowerCase();
+        if (cls.indexOf('cart') !== -1 || id.indexOf('cart') !== -1) {
+          container = cur;
+          break;
+        }
+        cur = cur.parentElement;
+      }
+      if (!container) continue;
 
-      // Replace price and add original strikethrough
-      var currentPrice = priceEl.textContent.trim();
-      var newCompare = document.createElement('span');
-      newCompare.textContent = currentPrice;
-      newCompare.className = 'mp-original';
-      newCompare.style.cssText = 'text-decoration:line-through;opacity:.55;margin-right:8px;font-size:0.9em;';
-      
-      priceEl.parentNode.insertBefore(newCompare, priceEl);
-      priceEl.textContent = memberFormatted;
-      priceEl.classList.add('mp-value');
+      // Find all span.price elements in this container
+      var priceEls = container.querySelectorAll('span.price');
+      if (priceEls.length === 0) continue;
 
-      addBadge(priceEl.parentNode, cfg.badgeText, 'mp-badge-cart');
+      for (var j = 0; j < priceEls.length; j++) {
+        var priceEl = priceEls[j];
+        if (processed.indexOf(priceEl) !== -1) continue;
+        if (priceEl.querySelector('.mp-badge-cart')) continue;
+        processed.push(priceEl);
+
+        var currentPrice = priceEl.textContent.trim();
+        if (!currentPrice) continue;
+
+        // Replace price
+        priceEl.textContent = memberFormatted;
+        priceEl.classList.add('mp-value');
+
+        // Add subtle cart badge below
+        var cartBadge = document.createElement('span');
+        cartBadge.className = 'mp-badge-cart';
+        cartBadge.textContent = cfg.badgeText;
+        priceEl.appendChild(cartBadge);
+      }
     }
   }
 
