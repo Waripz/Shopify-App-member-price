@@ -31,9 +31,27 @@
         var prodData = JSON.parse(prodEl.textContent);
         console.log('[MemberPrice] Product data:', prodData);
 
-        // Try to find the price element directly
-        var priceEl = document.querySelector('span.price-on-sale, ' + cfg.pdpContainer + ' ' + cfg.pdpPrice);
-        console.log('[MemberPrice] Direct price-on-sale query result:', priceEl);
+        // Try configured selector first, then common fallbacks
+        var selectors = [
+          cfg.pdpContainer + ' ' + cfg.pdpPrice,
+          'span.sale-price',
+          'span.price-on-sale',
+          '.product-price .sale-price',
+          '.price .sale-price',
+          'div.price span[class*="sale"]',
+          '.product__price .price-item--sale',
+          '.price__sale .price-item--sale'
+        ];
+        var priceEl = null;
+        for (var s = 0; s < selectors.length; s++) {
+          try {
+            priceEl = document.querySelector(selectors[s]);
+            if (priceEl) {
+              console.log('[MemberPrice] Found price with selector:', selectors[s]);
+              break;
+            }
+          } catch (e) { /* skip invalid selectors */ }
+        }
 
         if (!priceEl && attempt < MAX_RETRIES) {
           console.log('[MemberPrice] Price element not ready, retrying in', RETRY_DELAY, 'ms...');
@@ -45,9 +63,6 @@
           handleProduct(prodData, cfg, priceEl);
         } else {
           console.warn('[MemberPrice] Price element never found after', attempt, 'attempts');
-          // Last resort: log all elements with class containing "price"
-          var allPriceEls = document.querySelectorAll('[class*="price"]');
-          console.log('[MemberPrice] All elements with "price" in class:', allPriceEls);
         }
       } catch (e) {
         console.error('[MemberPrice] Product data parse error:', e);
@@ -92,8 +107,11 @@
      Product Page
   ———————————————————————————— */
   function handleProduct(data, cfg, priceEl) {
-    // Find the container from the price element
-    var container = priceEl.closest(cfg.pdpContainer) || priceEl.parentElement;
+    // Find the container from the price element (try configured, then common fallbacks)
+    var container = priceEl.closest(cfg.pdpContainer)
+      || priceEl.closest('div.price')
+      || priceEl.closest('div.prices')
+      || priceEl.parentElement;
 
     var memberFormatted = formatMoney(data.memberPrice);
     if (!memberFormatted) {
