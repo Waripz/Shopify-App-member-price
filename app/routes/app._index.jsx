@@ -56,7 +56,11 @@ export const action = async ({ request }) => {
           title: "IMANist Member Special Price",
           functionId: $functionId,
           startsAt: "${new Date().toISOString()}",
-          discountClasses: [PRODUCT]
+          combinesWith: {
+            orderDiscounts: true,
+            productDiscounts: true,
+            shippingDiscounts: true
+          }
         }) { 
           userErrors { message } 
         }
