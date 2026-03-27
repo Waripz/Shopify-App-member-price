@@ -9,7 +9,7 @@
 const EMPTY_DISCOUNT = {
   discounts: [],
   // @ts-ignore
-  discountApplicationStrategy: "FIRST", 
+  discountApplicationStrategy: "ALL", 
 };
 
 /**
@@ -60,6 +60,6 @@ export function run(input) {
   return {
     discounts,
     // @ts-ignore
-    discountApplicationStrategy: "FIRST",
+    discountApplicationStrategy: "ALL",
   };
 }
