@@ -257,6 +257,13 @@
     return parseFloat(numStr) || 0;
   }
 
+  function parseMemberVal(value) {
+    if (typeof value === 'object' && value !== null) return parseFloat(value.amount);
+    if (typeof value === 'string') return parseFloat(value);
+    if (typeof value === 'number') return value / 100;
+    return 0;
+  }
+
   /* ————————————————————————————
      Product Page
   ———————————————————————————— */
@@ -276,7 +283,7 @@
 
     var currentPrice = priceEl.textContent.trim();
     var curPriceVal = parsePriceStr(currentPrice);
-    var memberVal = typeof data.memberPrice === 'object' ? parseFloat(data.memberPrice.amount) : parseFloat(data.memberPrice);
+    var memberVal = parseMemberVal(data.memberPrice);
 
     if (memberVal >= curPriceVal) {
       console.log('[MemberPrice] Product: member price', memberVal, 'is not cheaper than current', curPriceVal);
@@ -351,7 +358,7 @@
       var memberFormatted = formatMoney(prices[handle]);
       if (!memberFormatted) continue;
 
-      var memberVal = typeof prices[handle] === 'object' ? parseFloat(prices[handle].amount) : parseFloat(prices[handle]);
+      var memberVal = parseMemberVal(prices[handle]);
 
       if (saleEl) {
         var curPrice = saleEl.textContent.trim();
@@ -470,7 +477,7 @@
       var memberFormatted = formatMoney(prices[handle]);
       if (!memberFormatted) continue;
       
-      var memberVal = typeof prices[handle] === 'object' ? parseFloat(prices[handle].amount) : parseFloat(prices[handle]);
+      var memberVal = parseMemberVal(prices[handle]);
 
       // Walk up to the nearest <li> which is the cart item container
       var li = link.closest('li');
