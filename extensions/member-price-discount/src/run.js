@@ -19,7 +19,7 @@ const EMPTY_DISCOUNT = {
 export function run(input) {
   const customer = input.cart.buyerIdentity?.customer;
 
-  const isMember = !!customer; // Must have an account and be logged in
+  const isMember = !!customer; // Changed to allow all logged-in users instead of checking for loyaltylion
   if (!isMember) return EMPTY_DISCOUNT;
 
   const discounts = input.cart.lines
@@ -32,12 +32,9 @@ export function run(input) {
       try {
         const memberPriceData = JSON.parse(memberPriceRaw);
         
-        // The metafield returns an integer representing cents (e.g., 3500 for RM35.00)
-        // If it's a number, divide by 100 to get decimal. If it's a Money object, grab .amount
         let memberPricePerUnit = 0;
         if (typeof memberPriceData === 'number') {
-          // Always divide numbers by 100 since Shopify stores these ints as cents.
-          // Example: 2000 => 20.00, 3500 => 35.00, 500 => 5.00
+          // If it's an integer representing cents (e.g. 2000 => 20.00)
           memberPricePerUnit = memberPriceData / 100;
         } else if (memberPriceData && memberPriceData.amount) {
           memberPricePerUnit = parseFloat(memberPriceData.amount);
@@ -45,6 +42,7 @@ export function run(input) {
           memberPricePerUnit = parseFloat(memberPriceRaw);
           if (memberPricePerUnit > 100) memberPricePerUnit = memberPricePerUnit / 100;
         }
+        
         const currentTotal = parseFloat(line.cost.totalAmount.amount);
 
         const memberTotal = memberPricePerUnit * line.quantity;
