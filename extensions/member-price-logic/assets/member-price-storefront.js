@@ -328,6 +328,10 @@
     console.log('[MemberPrice] Found', links.length, 'product links on page');
 
     for (var i = 0; i < links.length; i++) {
+      // Exclude cart items from handleListing (prevents DOM traversal explosion!)
+      var cartParent = links[i].closest('form[action*="/cart"], .cart, #cart, .mini-products, #mini-cart, .cart-drawer, .AjaxCart');
+      if (cartParent) continue;
+
       var handle = extractHandle(links[i].getAttribute('href'));
       if (!handle || !prices[handle]) continue;
 
@@ -443,6 +447,7 @@
   function findCardWithPriceBox(el, priceBoxSel) {
     var cur = el.parentElement;
     for (var d = 0; d < 12 && cur; d++) {
+      if (cur.tagName === 'BODY' || cur.tagName === 'HTML') break;
       if (cur.querySelector(priceBoxSel)) return cur;
       cur = cur.parentElement;
     }
