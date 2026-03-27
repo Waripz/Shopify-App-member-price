@@ -100,14 +100,28 @@
     <script id="mp-listing" type="application/json">
       {
         {%- assign mp_first = true -%}
-        {%- for p in collections.all.products limit: 250 -%}
-          {%- assign mp = p.metafields.custom.member_price -%}
-          {%- if mp != blank -%}
-            {%- unless mp_first -%},{%- endunless -%}
-            {{ p.handle | json }}: {{ mp.value | json }}
-            {%- assign mp_first = false -%}
-          {%- endif -%}
-        {%- endfor -%}
+        {%- paginate collections.all.products by 250 -%}
+          {%- for p in collections.all.products -%}
+            {%- assign mp = p.metafields.custom.member_price -%}
+            {%- if mp != blank -%}
+              {%- unless mp_first -%},{%- endunless -%}
+              {{ p.handle | json }}: {{ mp.value | json }}
+              {%- assign mp_first = false -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endpaginate -%}
+        {%- paginate collections by 40 -%}
+          {%- for c in collections -%}
+            {%- for p in c.products limit: 40 -%}
+              {%- assign mp = p.metafields.custom.member_price -%}
+              {%- if mp != blank -%}
+                {%- unless mp_first -%},{%- endunless -%}
+                {{ p.handle | json }}: {{ mp.value | json }}
+                {%- assign mp_first = false -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}
+        {%- endpaginate -%}
       }
     </script>
   {%- endif -%}
