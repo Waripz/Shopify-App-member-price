@@ -2,9 +2,7 @@ query RunInput {
   cart {
     buyerIdentity {
       customer {
-        metafield(namespace: "loyaltylion", key: "enroll_date") {
-          value
-        }
+        id
       }
     }
     lines {

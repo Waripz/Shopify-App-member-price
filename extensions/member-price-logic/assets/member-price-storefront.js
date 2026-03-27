@@ -346,7 +346,6 @@
       var priceBox = card.querySelector(cfg.colPriceBox);
       if (!priceBox) continue;
       
-      // We removed the `processed.indexOf(priceBox) !== -1` check here 
       // Check if this box already has our badge or member price applied.
       // We do NOT use a class on the box itself (like mp-processed) because 
       // apps like Appikon might replace the innerHTML of the box entirely,

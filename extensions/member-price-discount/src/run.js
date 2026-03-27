@@ -9,7 +9,7 @@
 const EMPTY_DISCOUNT = {
   discounts: [],
   // @ts-ignore
-  discountApplicationStrategy: "ALL", 
+  discountApplicationStrategy: "ALL",
 };
 
 /**
@@ -18,8 +18,8 @@ const EMPTY_DISCOUNT = {
  */
 export function run(input) {
   const customer = input.cart.buyerIdentity?.customer;
-  
-  const isMember = !!customer?.metafield?.value;
+
+  const isMember = !!customer; // Must have an account and be logged in
   if (!isMember) return EMPTY_DISCOUNT;
 
   const discounts = input.cart.lines
@@ -33,7 +33,7 @@ export function run(input) {
         const memberPriceData = JSON.parse(memberPriceRaw);
         const memberPricePerUnit = parseFloat(memberPriceData.amount);
         const currentTotal = parseFloat(line.cost.totalAmount.amount);
-        
+
         const memberTotal = memberPricePerUnit * line.quantity;
         const discountValue = currentTotal - memberTotal;
 
