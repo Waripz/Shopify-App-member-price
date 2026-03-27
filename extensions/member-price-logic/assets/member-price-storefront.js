@@ -251,6 +251,12 @@
     return currency + amount.toFixed(2);
   }
 
+  function parsePriceStr(str) {
+    if (!str) return 0;
+    var numStr = str.replace(/,/g, '').replace(/[^\d.]/g, '');
+    return parseFloat(numStr) || 0;
+  }
+
   /* ————————————————————————————
      Product Page
   ———————————————————————————— */
@@ -268,9 +274,16 @@
       return;
     }
 
-    console.log('[MemberPrice] SUCCESS - Replacing price with:', memberFormatted);
-
     var currentPrice = priceEl.textContent.trim();
+    var curPriceVal = parsePriceStr(currentPrice);
+    var memberVal = typeof data.memberPrice === 'object' ? parseFloat(data.memberPrice.amount) : parseFloat(data.memberPrice);
+
+    if (memberVal >= curPriceVal) {
+      console.log('[MemberPrice] Product: member price', memberVal, 'is not cheaper than current', curPriceVal);
+      return;
+    }
+
+    console.log('[MemberPrice] SUCCESS - Replacing price with:', memberFormatted);
 
     // Try configured compare selector, then common fallbacks
     var compareEl = null;
@@ -338,8 +351,15 @@
       var memberFormatted = formatMoney(prices[handle]);
       if (!memberFormatted) continue;
 
+      var memberVal = typeof prices[handle] === 'object' ? parseFloat(prices[handle].amount) : parseFloat(prices[handle]);
+
       if (saleEl) {
         var curPrice = saleEl.textContent.trim();
+        var curPriceVal = parsePriceStr(curPrice);
+        if (memberVal >= curPriceVal) {
+          console.log('[MemberPrice] Listing: member price', memberVal, 'not cheaper than sale', curPriceVal);
+          continue;
+        }
         if (oldEl) {
           oldEl.textContent = curPrice;
           oldEl.classList.add('mp-original');
@@ -357,6 +377,11 @@
       } else if (oldEl) {
         // Product not on sale — only has old-price or a regular price
         var curOldPrice = oldEl.textContent.trim();
+        var curOldVal = parsePriceStr(curOldPrice);
+        if (memberVal >= curOldVal) {
+          console.log('[MemberPrice] Listing: member price', memberVal, 'not cheaper than regular', curOldVal);
+          continue;
+        }
         var newCompare = document.createElement('span');
         newCompare.textContent = curOldPrice;
         newCompare.className = 'mp-original';
@@ -376,6 +401,11 @@
         if (anyPrice) {
           console.log('[MemberPrice] Listing: using fallback price el:', anyPrice.className);
           var origText = anyPrice.textContent.trim();
+          var origVal = parsePriceStr(origText);
+          if (memberVal >= origVal) {
+            console.log('[MemberPrice] Listing: member price', memberVal, 'not cheaper than fallback', origVal);
+            continue;
+          }
           var fb = document.createElement('span');
           fb.textContent = origText;
           fb.className = 'mp-original';
@@ -439,6 +469,8 @@
 
       var memberFormatted = formatMoney(prices[handle]);
       if (!memberFormatted) continue;
+      
+      var memberVal = typeof prices[handle] === 'object' ? parseFloat(prices[handle].amount) : parseFloat(prices[handle]);
 
       // Walk up to the nearest <li> which is the cart item container
       var li = link.closest('li');
