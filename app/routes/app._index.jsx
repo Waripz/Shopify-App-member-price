@@ -58,7 +58,7 @@ export const action = async ({ request }) => {
           startsAt: "${new Date().toISOString()}",
           combinesWith: {
             orderDiscounts: true,
-            productDiscounts: false,
+            productDiscounts: true,
             shippingDiscounts: true
           }
         }) { 
