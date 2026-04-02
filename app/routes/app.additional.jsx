@@ -50,8 +50,8 @@ export default function AdditionalPage() {
             For every item, it retrieves the true <code>custom.member_price</code> straight from the database. It compares this against the cart's current cost. 
           </s-list-item>
           <s-list-item>
-            <strong>Step 3: Stacking & Application</strong><br/>
-            Because this uses <code>discountApplicationStrategy: "ALL"</code> with combining flags enabled on the dashboard, this Member Price cleanly stacks mathematically with Order and Shipping discounts (like Free Gifts).
+            <strong>Step 3: Discount Competition</strong><br/>
+            This Member Price <strong>competes</strong> with other product discounts (e.g., "BUY MORE SAVE MORE"). Shopify automatically picks whichever gives the customer a better deal. It <strong>stacks</strong> normally with order-level discounts (coupon codes) and shipping discounts.
           </s-list-item>
         </s-unordered-list>
       </s-section>
@@ -59,7 +59,7 @@ export default function AdditionalPage() {
       {/* 4. Developer Reference */}
       <s-section heading="Developer Reference" slot="aside">
         <s-paragraph>
-          <strong>Product Metafield:</strong><br/> <code>custom.member_price</code> (Integer cents scale e.g., 2000 = RM20)
+          <strong>Product Metafield:</strong><br/> <code>custom.member_price</code> (Money type, e.g., RM35.00)
         </s-paragraph>
         <s-paragraph>
           <strong>Customer Rule:</strong><br/> Must be actively logged into an account.

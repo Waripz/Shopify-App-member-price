@@ -6,7 +6,7 @@ query RunInput {
       }
     }
     lines {
-      id # <--- THIS WAS MISSING. Add this line!
+      id
       quantity
       cost {
         totalAmount {

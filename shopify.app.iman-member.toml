@@ -1,0 +1,24 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "e4aba654695f9dd4f0e0d58c32abfdea"
+name = "iman-member"
+application_url = " https://iman-member-price.fly.dev"
+embedded = true
+
+[webhooks]
+api_version = "2026-04"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_discounts,write_products"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://iman-member-price.fly.dev/auth/callback",
+  "https://iman-member-price.fly.dev/auth/token"
+]
+
+[build]
+automatically_update_urls_on_dev = false

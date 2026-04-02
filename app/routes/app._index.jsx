@@ -58,7 +58,7 @@ export const action = async ({ request }) => {
           startsAt: "${new Date().toISOString()}",
           combinesWith: {
             orderDiscounts: true,
-            productDiscounts: true,
+            productDiscounts: false,
             shippingDiscounts: true
           }
         }) { 
@@ -136,7 +136,7 @@ export default function Index() {
       <s-banner tone={isActive ? "info" : "warning"}>
         <s-paragraph>
           {isActive 
-            ? "Your member pricing logic is live. Logged-in IMANist members will now see updated prices in their cart." 
+            ? "Your member pricing logic is live. All logged-in customers will receive member prices at checkout." 
             : "The system is currently paused. Retail prices will be shown to all customers."}
         </s-paragraph>
       </s-banner>
@@ -151,7 +151,7 @@ export default function Index() {
             <strong>App Status:</strong> {isActive ? "🟢 Live" : "⚪ Offline"}
           </s-list-item>
           <s-list-item>
-            <strong>Target Audience:</strong> Customers with <em>imanist_loyalty_enrolled_date</em>
+            <strong>Target Audience:</strong> All logged-in customers with an account
           </s-list-item>
         </s-unordered-list>
       </s-section>
@@ -177,10 +177,10 @@ export default function Index() {
         <s-paragraph>Ensure these are configured for the logic to trigger:</s-paragraph>
         <s-unordered-list>
           <s-list-item>
-            <strong>Product:</strong> Add <em>member_price</em> (Money type).
+            <strong>Product:</strong> Add <em>member_price</em> metafield (Money type).
           </s-list-item>
           <s-list-item>
-            <strong>Customer:</strong> Fill the <em>Enrolled Date</em>.
+            <strong>Customer:</strong> Must have an active account (logged in).
           </s-list-item>
           <s-list-item>
             <strong>Storefront:</strong> Members must be <strong>logged in</strong>.
